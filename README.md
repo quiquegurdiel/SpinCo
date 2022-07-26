@@ -15,4 +15,6 @@
 4- have fun
 
 ### Disclaimer:
-You should manage the dependencies by yourself, pip install [library name] should be enough for all libraries, check the imports at the begining of the notebooks
+You should manage the dependencies by yourself, pip install [library name] should be enough for all libraries, check the imports at the begining of the notebooks.
+
+Using virtual environmets is higly recommended (always).
