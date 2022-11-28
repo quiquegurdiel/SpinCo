@@ -60,6 +60,16 @@ def padVectorBothSides(vector,amount,method):
         vector=padVectorBegin(vector,amount,method)
         vector=padVectorEnd(vector,amount,method)
     return vector
+
+def loadPickle(filepath):
+    cFile = open(filepath, 'rb')
+    content = pkl.load(cFile)
+    cFile.close()
+    return content
+
+def dumpPickle(filepath,content):
+    with open(filepath, 'wb') as file:
+        pkl.dump(content, file)
 #_________________________________________________________________________
 
 
@@ -163,6 +173,27 @@ def bandStd(vector,windowDuration,filterFrequencies,samplerate,filterOrder=4):
 
 #__________________________________________________________________________
 #__ TIME DOMAIN INPUT _____________________________________________________
+def getSegmentBandRP(segment,frequencyBand,samplerate,resolution=1024):
+    aux=tapperAndGetPSD(segment,samplerate,resolution,returnFreqs=True)
+    roi=(aux[0]>=frequencyBand[0])&(aux[0]<=frequencyBand[1])
+    psd=aux[1]
+    psd=psd/np.sum(psd)
+    rp=np.sum(psd[roi])
+    return rp
+
+def bandRelativePower(vector,frequencyBand,windowDuration,samplerate,resolution=1024):  #target band must be explicited
+    #General variables
+    windowSampleCount=getWindowSampleCount(windowDuration,samplerate)
+    halfWindow=window2half(windowSampleCount)
+    #Lambda definition
+    lambdaRP=lambda segment: getSegmentBandRP(segment,frequencyBand,samplerate,resolution)
+    #Vector padding
+    vector=padVectorBothSides(vector,halfWindow,'closest')
+    #View iteration and lambda application using starmap
+    view=np_tricks.sliding_window_view(vector,(windowSampleCount,))
+    se=list(itertools.starmap(lambdaRP,zip(view)))
+    return np.array(se).flatten()
+
 def centralTendencyMeasure(vector,windowDuration,samplerate,r=0.1):
     #General variables
     windowSampleCount=getWindowSampleCount(windowDuration,samplerate)
@@ -545,7 +576,51 @@ windowDuration=60,detectThres=2.33,frontierThres=0.1,minSpindleDuration=0.49):
 
 
 #_________________________________________________________________________
-#__ DREAMS DB ____________________________________________________________
+#__ DATABASE MANAGEMENT __________________________________________________
+# NEEDS REFINEMENT AND CONVERGE THE MULTIPLE DATABASES
+def loadMASSSpindles(path,returnSignals=False,forceSamplerate=0):
+    if returnSignals & (forceSamplerate>0):
+        raise ValueError("[returnSignals, forceSamplerate] parameters: resample functionality not availabe at signal load, please leave one of the parameters with default value")
+
+    #signalsMetadata
+    signalsMetadata=pd.read_csv(path+'\\signals\\signalsMetadata.csv')
+    signalsMetadata['subjectId']=signalsMetadata.apply(
+        lambda row: str(row.subjectId).zfill(4),axis=1)
+    signalsMetadata['isOriginalSamplerate']=True
+    #-------------------------------------->
+    signalsMetadata['database']='MASS'
+    #<--------------------------------------
+    if forceSamplerate>0:   #use to load the information for a particular samplerate
+        signalsMetadata['samplerate']=forceSamplerate
+        signalsMetadata['isOriginalSamplerate']=False
+
+    #spindle annotations
+    annotations=pd.read_csv(path+'\\annotations\\annotations.csv')
+    annotations['subjectId']=annotations.apply(
+        lambda row: str(row.subjectId).zfill(4),axis=1)
+    annotations['labelerId']=annotations.apply(
+        lambda row: str(row.labelerId).zfill(4),axis=1)
+    
+    #add stop and index colums
+    annotations=annotations.merge(signalsMetadata[['subjectId','samplerate']],how='left',on='subjectId')
+    annotations['stopTime']=annotations.apply(
+        lambda row: row.startTime+row.duration , axis=1)
+    annotations['startInd']=annotations.apply(
+        lambda row: seconds2index(row.startTime,row.samplerate) , axis=1)
+    annotations['stopInd']=annotations.apply(
+        lambda row: seconds2index(row.stopTime,row.samplerate) , axis=1)
+
+    if returnSignals:
+        #load signals from pickle
+        signals={}
+        for index, row in signalsMetadata.iterrows():
+            signalpath=path+"/signals/"+row.file
+            signals[row.subjectId]=loadPickle(signalpath)
+        return signals, annotations, signalsMetadata
+
+    else:
+        return annotations, signalsMetadata
+
 def loadDREAMSSpindles(path,equalize=True):
     #signalsMetadata
     signalsMetadata=pd.read_csv(path+'\\signals\\signalsMetadata.csv')
@@ -620,41 +695,62 @@ def loadDREAMSSpindles(path,equalize=True):
 def saveFeature(vector,window,subject,characteristic,bandName,samplerate,featurespath):
     filename=str(window)+'_'+subject+'_'+characteristic+'_'+bandName+'.fd'
     filepath=featurespath+'/'+str(samplerate)+'fs/'+str(window)+'win/'+subject+'/'+filename
-    with open(filepath, 'wb') as file:
-        pkl.dump(vector, file)
+    dumpPickle(filepath,vector)
 
 def loadFeature(window,subject,characteristic,bandName,samplerate,featurespath):
     filename=str(window)+'_'+subject+'_'+characteristic+'_'+bandName+'.fd'
     filepath=featurespath+'/'+str(samplerate)+'fs/'+str(window)+'win/'+subject+'/'+filename
-    cFile = open(filepath, 'rb')
-    vector = pkl.load(cFile)
-    cFile.close()
+    vector=loadPickle(filepath)
     return vector
 
-def loadFeatureMatrix (subjectList,featuresDataframe,excerptDimension,window,samplerate,featurespath):
-    featureMatrix=np.zeros((len(subjectList)*excerptDimension,len(featuresDataframe)))
-    for i,row in featuresDataframe.iterrows():
-        characteristic=row['characteristic']
-        bandName=row['bandName']
-        featureValue=np.zeros_like(featureMatrix[:,0])  #initialise a row
-        for j in range(len(subjectList)):
-            subject=subjectList[j]
-            featureValue[excerptDimension*j:excerptDimension*(j+1)]=loadFeature(str(window),subject,characteristic,bandName,str(samplerate),featurespath)
-        featureMatrix[:,i]=featureValue
+def loadFeatureMatrix(subjectList,featureSelection,signalsMetadata,samplerate,datapath):
+    featureSelection=featureSelection.reset_index(drop=True)
+    # operate on the signal lengths of the subjects selected
+    thisSignals=signalsMetadata[signalsMetadata.subjectId.isin(subjectList)].copy()
+    thisSignals['excerptDimension']=thisSignals.apply(
+        lambda row: int(row.duration*samplerate),
+        axis=1)
+    # initialise the feature matrix
+    featureMatrix=np.zeros((np.sum(thisSignals.excerptDimension),len(featureSelection)))
+    # fill the matrix
+    for i,feature in featureSelection.iterrows():   #iterate the featrures
+        characteristic=feature['characteristic']
+        bandName=feature['bandName']
+        window=feature['window']
+        featureValue=np.zeros_like(featureMatrix[:,i])  #initialise a row
+        auxStartInd=0
+        for j, row in thisSignals.iterrows():   #iterate the signals selected to fill the row
+            subject=row['subjectId']
+            excerptDim=row['excerptDimension']
+            featurespath=datapath+"\\"+row['database']+"\\features"
+            featureValue[auxStartInd:auxStartInd+excerptDim]=loadFeature(str(window),subject,characteristic,bandName,str(samplerate),featurespath)
+            auxStartInd=auxStartInd+excerptDim
+        featureMatrix[:,i]=featureValue #   fill a row
     return featureMatrix
 
 def excerptAnnotationsToLabels(excerptAnnotations,excerptDimension):
-    excerptLables=np.zeros((excerptDimension,))
+    excerptLabels=np.zeros((excerptDimension,))
     for index,row in excerptAnnotations.iterrows():
-        excerptLables[int(row.startInd):int(row.stopInd)]=1 #avoid exceptions when converting back and forth
-    return excerptLables
+        excerptLabels[int(row.startInd):int(row.stopInd)]=1 # int casting to avoid exceptions when converting back and forth
+    return excerptLabels
 
-def loadLabelsVector(subjectList,annotations,excerptDimension):
-    labelsVector=np.zeros((len(subjectList)*excerptDimension,))
-    for j in range(len(subjectList)):
-        subject=subjectList[j]
-        thisAnnotations=annotations[annotations.subjectId==subject].reset_index()
-        labelsVector[excerptDimension*j:excerptDimension*(j+1)]=excerptAnnotationsToLabels(thisAnnotations,excerptDimension)
+def loadLabelsVector(subjectList,annotations,signalsMetadata,samplerate):
+    #WARNING: annotations must be filtered or union criterium will be used
+    # operate on the signal lengths of the subjects selected
+    thisSignals=signalsMetadata[signalsMetadata.subjectId.isin(subjectList)].copy()
+    thisSignals['excerptDimension']=thisSignals.apply(
+        lambda row: int(row.duration*samplerate),
+        axis=1)
+    # initialise vector of labels
+    labelsVector=np.zeros((np.sum(thisSignals['excerptDimension']),))
+    auxStartInd=0
+    # iterate the signals
+    for j, row in thisSignals.iterrows():   #iterate the signals selected to fill the row
+        subject=row['subjectId']
+        excerptDim=row['excerptDimension']
+        thisAnnotations=annotations[annotations.subjectId==subject] #filter the annotations
+        labelsVector[auxStartInd:auxStartInd+excerptDim]=excerptAnnotationsToLabels(thisAnnotations,excerptDim) # process all annotations of a given subject
+        auxStartInd=auxStartInd+excerptDim
     return labelsVector
 
 def labelVectorToAnnotations(labelVector,samplerate):
