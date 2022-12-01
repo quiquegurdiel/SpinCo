@@ -692,6 +692,114 @@ def loadDREAMSSpindles(path,equalize=True):
 
 #_________________________________________________________________________
 #__ FEATURE & LABEL MANAGEMENT ___________________________________________
+def labelIntersectionIoU(label,annotations):
+    isIntersect=annotations.apply(
+        lambda row: ((label.startInd>=row.startInd)&(label.startInd<row.stopInd)) | ((row.startInd>=label.startInd)&(row.startInd<label.stopInd))
+        ,axis=1)
+    labelIntersect=None
+    #output lenght should be equal 1 or 0 (at least now)
+    aux=np.sum(isIntersect)
+    if aux==0:
+        IoU=0
+    else:
+        if aux>1:   #<----------- beware of labels with more than 1 intersecting detection
+            print("Warning: multiple overlap")
+            print(aux)
+        allIntersections=np.where(isIntersect)[0]
+        intersectingIndexes=np.array([])
+        intersection=0                        #indices of the intersection selected
+        labelIndexes=np.arange(label.startInd,label.stopInd)    #indices of the label we are checking
+        for i in allIntersections:
+            intersecting=annotations.loc[i]
+            tempIndexes=np.arange(intersecting.startInd,intersecting.stopInd)
+            tempIntersection=len(np.intersect1d(labelIndexes,tempIndexes))
+            if (tempIntersection>intersection): #select only maximal overlap
+                intersectingIndexes=tempIndexes
+                labelIntersect=i
+        IoU=len(np.intersect1d(labelIndexes,intersectingIndexes))/len(np.union1d(labelIndexes,intersectingIndexes))
+    return IoU, labelIntersect
+
+def byEventEvaluation(gtAnnotations,finalAnnotations,thres_IoU=0.3):
+    gtAnnotations[['IoU','intersectsWith']]=gtAnnotations.apply(
+        lambda row: labelIntersectionIoU(row,finalAnnotations)
+        ,axis=1, result_type ='expand')
+    # handle detections intersecting with multiple gt annotations -------------------------------------->
+    nanindex=np.isnan(gtAnnotations.intersectsWith)
+    np.unique(gtAnnotations.intersectsWith)
+    notnan=np.array(gtAnnotations.index)[-nanindex]
+    uniqueIntersect=np.unique(gtAnnotations.iloc[notnan].intersectsWith)
+    if len(gtAnnotations.iloc[notnan])>len(uniqueIntersect):
+        for val in uniqueIntersect:
+            aux=gtAnnotations[gtAnnotations.intersectsWith==val].copy()
+            if len(aux)>1:
+                keep=aux.index[np.argmax(aux.IoU)]  #<- keep maximum IoU only
+                for ind_aux,row in aux.iterrows():
+                    if ind_aux!=keep:
+                        gtAnnotations.at[ind_aux,"intersectsWith"]=np.NaN
+    #<---------------------------------------------------------------------------------------------------
+    annotationsNoOverlap=np.array(gtAnnotations[gtAnnotations.intersectsWith.isna()].index)
+    gtAnnotationsOverlap=gtAnnotations.iloc[np.setdiff1d(np.array(gtAnnotations.index),annotationsNoOverlap)]
+    detectionsOverThreshold=np.array(gtAnnotationsOverlap[gtAnnotationsOverlap.IoU>=thres_IoU].intersectsWith)
+    detectionsBelowThreshold=np.array(gtAnnotationsOverlap[gtAnnotationsOverlap.IoU<thres_IoU].intersectsWith)
+    detectionsConsidered=np.union1d(detectionsOverThreshold,detectionsBelowThreshold)
+    detecionsNotConsidered=np.setdiff1d(
+        np.array(finalAnnotations.index),
+        detectionsConsidered
+    )
+    #detection below threshold are a false positive and a false negative!
+    tp=len(detectionsOverThreshold)
+    fp=len(detecionsNotConsidered)+len(detectionsBelowThreshold)
+    fn=len(annotationsNoOverlap)+len(detectionsBelowThreshold)
+    return tp,fp,fn
+
+def getConfidence(label,annotations):
+    isIntersect=annotations.apply(
+        lambda row: ((label.startInd>=row.startInd)&(label.startInd<row.stopInd)) | ((row.startInd>=label.startInd)&(row.startInd<label.stopInd))
+        ,axis=1)
+
+    #output lenght should be equal 1 or 0 (at least now)
+    aux=np.sum(isIntersect)
+    if aux==0:
+        raise Exception("Data inconsistency: all predictions must intersect with some candidate")
+    else:
+        allIntersections=np.where(isIntersect)[0]
+        intersectingIndexes=np.array([])
+        for i in allIntersections:
+            intersecting=annotations.loc[i]
+            tempIndexes=np.arange(intersecting.startInd,intersecting.stopInd)
+            intersectingIndexes=np.concatenate((intersectingIndexes,tempIndexes))
+        labelIndexes=np.arange(label.startInd,label.stopInd)
+        #double check:
+        union=np.union1d(labelIndexes,intersectingIndexes)
+        if len(np.setdiff1d(labelIndexes,union))>0:
+            raise Exception("Data inconsistency: all intersections must be contained in the prediction")
+        confidence=len(np.intersect1d(labelIndexes,intersectingIndexes))/len(labelIndexes)
+    return confidence
+
+def labelingProcess(labelVector,maxTimeClose,minDuration,samplerate,verbose=0):
+    aux=ndi.label(labelVector)
+    preCandidates=ndi.find_objects(aux[0])
+    if len(preCandidates)>0:    #consider the case of no precandidates at all
+        if verbose>0:
+            print("Number of raw candidates: "+str(len(preCandidates)))
+        #1. Join candidates separated by less than the threshold
+        kernelLength=int(maxTimeClose*samplerate)
+        if kernelLength>0:
+            kernel=np.ones((kernelLength,))
+            labelVector=ndi.binary_closing(labelVector,kernel)
+        #2. Discard candidates under minimum duration
+        aux=ndi.label(labelVector)
+        candidates=ndi.find_objects(aux[0])
+        labelVector=np.zeros_like(labelVector)
+        if len(candidates)>0:
+            durations=np.apply_along_axis(lambda x: (x[0].stop-x[0].start)/samplerate,1,candidates)
+            detections=[candidates[i] for i in np.where(durations>minDuration)[0]]
+            for detection in detections:
+                labelVector[detection]=1
+            if verbose>0:
+                print("Number of detections: "+str(len(detections)))
+    return labelVector
+
 def saveFeature(vector,window,subject,characteristic,bandName,samplerate,featurespath):
     filename=str(window)+'_'+subject+'_'+characteristic+'_'+bandName+'.fd'
     filepath=featurespath+'/'+str(samplerate)+'fs/'+str(window)+'win/'+subject+'/'+filename
@@ -722,7 +830,7 @@ def loadFeatureMatrix(subjectList,featureSelection,signalsMetadata,samplerate,da
         for j, row in thisSignals.iterrows():   #iterate the signals selected to fill the row
             subject=row['subjectId']
             excerptDim=row['excerptDimension']
-            featurespath=datapath+"\\"+row['database']+"\\features"
+            featurespath=datapath+"/"+row.database+"/features"
             featureValue[auxStartInd:auxStartInd+excerptDim]=loadFeature(str(window),subject,characteristic,bandName,str(samplerate),featurespath)
             auxStartInd=auxStartInd+excerptDim
         featureMatrix[:,i]=featureValue #   fill a row
