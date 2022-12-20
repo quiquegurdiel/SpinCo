@@ -10,6 +10,7 @@ import itertools
 import medusa.local_activation.nonlinear_parameters as mnl # :)
 import medusa.local_activation.spectral_parameteres as msp # :)
 import pickle as pkl
+import xgboost as xgb
 
 #__________________________________________________________________________
 #__ HELPERS _______________________________________________________________
@@ -578,7 +579,7 @@ windowDuration=60,detectThres=2.33,frontierThres=0.1,minSpindleDuration=0.49):
 #_________________________________________________________________________
 #__ DATABASE MANAGEMENT __________________________________________________
 # NEEDS REFINEMENT AND CONVERGE THE MULTIPLE DATABASES
-def loadMASSSpindles(path,returnSignals=False,forceSamplerate=0):
+def loadMASSSpindles(path,returnSignals=False,forceSamplerate=0,onlySpindlesFilteredN2=False):
     if returnSignals & (forceSamplerate>0):
         raise ValueError("[returnSignals, forceSamplerate] parameters: resample functionality not availabe at signal load, please leave one of the parameters with default value")
 
@@ -594,12 +595,19 @@ def loadMASSSpindles(path,returnSignals=False,forceSamplerate=0):
         signalsMetadata['samplerate']=forceSamplerate
         signalsMetadata['isOriginalSamplerate']=False
 
-    #spindle annotations
-    annotations=pd.read_csv(path+'\\annotations\\annotations.csv')
-    annotations['subjectId']=annotations.apply(
-        lambda row: str(row.subjectId).zfill(4),axis=1)
-    annotations['labelerId']=annotations.apply(
-        lambda row: str(row.labelerId).zfill(4),axis=1)
+    #annotations
+    if onlySpindlesFilteredN2:
+        annotations=pd.read_csv(path+'\\annotations\\spindlesFilteredN2.csv')
+        annotations['subjectId']=annotations.apply(
+            lambda row: str(row.subjectId).zfill(4),axis=1)
+        annotations['labelerId']=annotations.apply(
+            lambda row: str(row.labelerId).zfill(4),axis=1)
+    else:  
+        annotations=pd.read_csv(path+'\\annotations\\annotations.csv')
+        annotations['subjectId']=annotations.apply(
+            lambda row: str(row.subjectId).zfill(4),axis=1)
+        annotations['labelerId']=annotations.apply(
+            lambda row: str(row.labelerId).zfill(4),axis=1)
     
     #add stop and index colums
     annotations=annotations.merge(signalsMetadata[['subjectId','samplerate']],how='left',on='subjectId')
@@ -692,7 +700,7 @@ def loadDREAMSSpindles(path,equalize=True):
 
 #_________________________________________________________________________
 #__ FEATURE & LABEL MANAGEMENT ___________________________________________
-def labelIntersectionIoU(label,annotations):
+def labelIntersectionIoU(label,annotations,verbose=0):
     isIntersect=annotations.apply(
         lambda row: ((label.startInd>=row.startInd)&(label.startInd<row.stopInd)) | ((row.startInd>=label.startInd)&(row.startInd<label.stopInd))
         ,axis=1)
@@ -702,7 +710,7 @@ def labelIntersectionIoU(label,annotations):
     if aux==0:
         IoU=0
     else:
-        if aux>1:   #<----------- beware of labels with more than 1 intersecting detection
+        if (aux>1)&(verbose>0):   #<----------- beware of labels with more than 1 intersecting detection
             print("Warning: multiple overlap")
             print(aux)
         allIntersections=np.where(isIntersect)[0]
@@ -873,4 +881,22 @@ def labelVectorToAnnotations(labelVector,samplerate):
         "duration":durations
     })
     return outputAnnotations
+#_________________________________________________________________________
+
+#_________________________________________________________________________
+#__ EXPERIMENT & MODEL MANAGEMENT ________________________________________
+def loadExperiment(experimentId,datapath):
+    experimentModels=loadPickle(datapath+"/experiments/"+experimentId+"/experimentModels.pkl")
+    featureSelection=loadPickle(datapath+"/experiments/"+experimentId+"/featureSelection.pkl")
+    return experimentModels, featureSelection
+
+def loadModel(modelId,experimentId,datapath):   #TBD: this should be generic
+    model=xgb.XGBClassifier()
+    model.load_model(datapath+"/experiments/"+experimentId+"/"+modelId+".json")
+    return model
+
+def loadBooster(modelId,experimentId,datapath):
+    model=xgb.Booster()
+    model.load_model(datapath+"/experiments/"+experimentId+"/"+modelId+".json")
+    return model
 #_________________________________________________________________________
