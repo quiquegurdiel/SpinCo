@@ -6,7 +6,7 @@ import numpy.lib.stride_tricks as np_tricks
 import bottleneck as btl
 import scipy.interpolate as interp
 import scipy.stats as sta
-import itertools
+import itertools as itt
 import medusa.local_activation.nonlinear_parameters as mnl # :)
 import medusa.local_activation.spectral_parameteres as msp # :)
 import pickle as pkl
@@ -78,12 +78,12 @@ def dumpPickle(filepath,content):
 #__ MATHEMATICS ___________________________________________________________
 def deltaSignChanges(vector,window):
     #-> Credits to Mark Byers here: https://stackoverflow.com/questions/2936834/python-counting-sign-changes
-    lambdaSignChanges = lambda segment: len(list(itertools.groupby(segment, lambda x: x > 0)))-1
+    lambdaSignChanges = lambda segment: len(list(itt.groupby(segment, lambda x: x > 0)))-1
     #<-
     halfWindow=window2half(window)
     vector=padVectorBothSides(vector,halfWindow,'closest')
     view=np_tricks.sliding_window_view(vector,(window,))
-    delta=list(itertools.starmap(lambdaSignChanges,zip(view)))
+    delta=list(itt.starmap(lambdaSignChanges,zip(view)))
     return np.array(delta)
 
 #using bottleneck-------------------------------------------------------------------
@@ -121,7 +121,7 @@ def movingSkew(vector,window):
     vector=padVectorBothSides(vector,halfWindow,'nan')
     #View iteration and lambda application using starmap
     view=np_tricks.sliding_window_view(vector,(window,))
-    mskew=list(itertools.starmap(lambdaSkew,zip(view)))
+    mskew=list(itt.starmap(lambdaSkew,zip(view)))
     return np.array(mskew).flatten()
 
 def movingKurt(vector,window):
@@ -133,7 +133,7 @@ def movingKurt(vector,window):
     vector=padVectorBothSides(vector,halfWindow,'nan')
     #View iteration and lambda application using starmap
     view=np_tricks.sliding_window_view(vector,(window,))
-    mkurt=list(itertools.starmap(lambdaKurt,zip(view)))
+    mkurt=list(itt.starmap(lambdaKurt,zip(view)))
     return np.array(mkurt).flatten()
 #__________________________________________________________________________
 
@@ -192,7 +192,7 @@ def bandRelativePower(vector,frequencyBand,windowDuration,samplerate,resolution=
     vector=padVectorBothSides(vector,halfWindow,'closest')
     #View iteration and lambda application using starmap
     view=np_tricks.sliding_window_view(vector,(windowSampleCount,))
-    se=list(itertools.starmap(lambdaRP,zip(view)))
+    se=list(itt.starmap(lambdaRP,zip(view)))
     return np.array(se).flatten()
 
 def centralTendencyMeasure(vector,windowDuration,samplerate,r=0.1):
@@ -205,7 +205,7 @@ def centralTendencyMeasure(vector,windowDuration,samplerate,r=0.1):
     vector=padVectorBothSides(vector,halfWindow,'closest')
     #View iteration and lambda application using starmap
     view=np_tricks.sliding_window_view(vector,(windowSampleCount,))
-    se=list(itertools.starmap(lambdaCTM,zip(view)))
+    se=list(itt.starmap(lambdaCTM,zip(view)))
     return np.array(se).flatten()
 
 def tapperVector(vector):   #if other methods added, keep hamming as default
@@ -231,7 +231,7 @@ def spectralEntropy(vector,frequencyBand,windowDuration,samplerate,resolution=10
     vector=padVectorBothSides(vector,halfWindow,'closest')
     #View iteration and lambda application using starmap
     view=np_tricks.sliding_window_view(vector,(windowSampleCount,))
-    se=list(itertools.starmap(lambdaSpecE,zip(view)))
+    se=list(itt.starmap(lambdaSpecE,zip(view)))
     return np.array(se).flatten()
 
 def medianFrequency(vector,frequencyBand,windowDuration,samplerate,resolution=1024):  #target band must be explicited
@@ -245,7 +245,7 @@ def medianFrequency(vector,frequencyBand,windowDuration,samplerate,resolution=10
     vector=padVectorBothSides(vector,halfWindow,'closest')
     #View iteration and lambda application using starmap
     view=np_tricks.sliding_window_view(vector,(windowSampleCount,))
-    se=list(itertools.starmap(lambdaSpecE,zip(view)))
+    se=list(itt.starmap(lambdaSpecE,zip(view)))
     return np.array(se).flatten()
 
 def sampleEntropy(vector,windowDuration,samplerate,m=2,rFactor=0.25):
@@ -260,7 +260,7 @@ def sampleEntropy(vector,windowDuration,samplerate,m=2,rFactor=0.25):
     vector=padVectorBothSides(vector,halfWindow,'closest')
     #View iteration and lambda application using starmap
     view=np_tricks.sliding_window_view(vector,(windowSampleCount,))
-    se=list(itertools.starmap(lambdaSampE,zip(view,stdVector)))
+    se=list(itt.starmap(lambdaSampE,zip(view,stdVector)))
     return np.array(se).flatten()
 
 def lempelZivComplexity(vector,windowDuration,samplerate):
@@ -275,7 +275,7 @@ def lempelZivComplexity(vector,windowDuration,samplerate):
     vector=padVectorBothSides(vector,halfWindow,'closest')
     #View iteration and lambda application using starmap
     view=np_tricks.sliding_window_view(vector,(windowSampleCount,))
-    lzc=list(itertools.starmap(lambdalZiv,zip(view,medianVector)))
+    lzc=list(itt.starmap(lambdalZiv,zip(view,medianVector)))
     return np.array(lzc).flatten()
 
 def bandRatioRMS(vector,filterFrequencies,windowDuration,samplerate,filterOrder=4):
