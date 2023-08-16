@@ -11,6 +11,7 @@ import medusa.local_activation.nonlinear_parameters as mnl # :)
 import medusa.local_activation.spectral_parameteres as msp # :)
 import pickle as pkl
 import xgboost as xgb
+import os
 
 #__________________________________________________________________________
 #__ HELPERS _______________________________________________________________
@@ -667,6 +668,8 @@ def loadDREAMSSpindles(path,equalize=True):
                 signals[key]=signal[:int(masterDuration)*masterSamplerate]
         #update metadata
         signalsMetadata.samplerate=masterSamplerate
+    signalsMetadata['database']='DREAMS'
+
 
     #spindle annotations
     annotationsMetadata=pd.read_csv(path+'\\annotations\\annotationsMetadata.csv')
@@ -695,7 +698,48 @@ def loadDREAMSSpindles(path,equalize=True):
         lambda row: seconds2index(row.stopTime,row.samplerate) , axis=1)
     annotations=annotations.reset_index()
 
-    return signals, annotations, signalsMetadata, subjectsMetadata, annotationsMetadata
+    return signals, annotations, signalsMetadata
+
+def loadCOGNITIONSpindles(path,returnSignals=False):
+    #signalsMetadata
+    signalsMetadata=pd.read_csv(path+'\\signals\\signalsMetadata.csv')
+    signalsMetadata['subjectId']=signalsMetadata.apply(
+        lambda row: str(row.subjectId).zfill(4),axis=1)
+    signalsMetadata['isOriginalSamplerate']=True
+    #-------------------------------------->
+    signalsMetadata['database']='COGNITION'
+    #<--------------------------------------
+    signalsMetadata['samplerate']=200   #<- samplerate harcoded to 200 Hz
+    signalsMetadata['isOriginalSamplerate']=False
+
+    #annotations
+    annotations=pd.read_csv(path+'\\annotations\\annotations.csv')
+    annotations['subjectId']=annotations.apply(
+        lambda row: str(row.subjectId).zfill(4),axis=1)
+    annotations['labelerId']=annotations.apply(
+        lambda row: str(row.labelerId).zfill(4),axis=1)
+
+    #add stop and index colums
+    annotations=annotations.merge(signalsMetadata[['subjectId','samplerate']],how='left',on='subjectId')
+    annotations['stopTime']=annotations.apply(
+        lambda row: row.startTime+row.duration , axis=1)
+    annotations['startInd']=annotations.apply(
+        lambda row: seconds2index(row.startTime,row.samplerate) , axis=1)
+    annotations['stopInd']=annotations.apply(
+        lambda row: seconds2index(row.stopTime,row.samplerate) , axis=1)
+
+    if returnSignals:
+        #load signals from pickle
+        signals={}
+        for index, row in signalsMetadata.iterrows():
+            signalpath=path+"/signals/"+row.filename
+            signals[row.subjectId]=np.loadtxt(signalpath)
+            signals[row.subjectId]=sg.resample_poly(signals[row.subjectId],up=2,down=5)
+
+        return signals, annotations, signalsMetadata
+
+    else:
+        return annotations, signalsMetadata
 #_________________________________________________________________________
 
 #_________________________________________________________________________
@@ -808,10 +852,16 @@ def labelingProcess(labelVector,maxTimeClose,minDuration,samplerate,verbose=0):
                 print("Number of detections: "+str(len(detections)))
     return labelVector
 
-def saveFeature(vector,window,subject,characteristic,bandName,samplerate,featurespath):
+def getFilepath(window,subject,characteristic,bandName,samplerate,featurespath):
     filename=str(window)+'_'+subject+'_'+characteristic+'_'+bandName+'.fd'
     filepath=featurespath+'/'+str(samplerate)+'fs/'+str(window)+'win/'+subject+'/'+filename
-    dumpPickle(filepath,vector)
+    return filepath
+
+def saveFeature(vector,window,subject,characteristic,bandName,samplerate,featurespath):
+    filepath=getFilepath(window,subject,characteristic,bandName,samplerate,featurespath)
+    if not os.path.exists(filepath):
+        print('saving feature: '+filepath)
+        dumpPickle(filepath,vector)
 
 def loadFeature(window,subject,characteristic,bandName,samplerate,featurespath):
     filename=str(window)+'_'+subject+'_'+characteristic+'_'+bandName+'.fd'
