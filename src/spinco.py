@@ -408,7 +408,7 @@ def getMedianPSDIndex(vector,method='firstOver'): #<------ this could be inside 
 
 
 #_________________________________________________________________________
-#__ TIME-WINDOW METRICS __________________________________________________
+#__ TIME-WINDOW METRICS __________________________________________________  DEPRECATED!!!!!!!
 def F1(gtVector,predVector):
     tp=np.sum(gtVector*predVector)
     fp=np.sum((1-gtVector)*predVector)
@@ -425,7 +425,7 @@ def MCC(gtVector,predVector):
 def binaryIoU(vector1,vector2):
     return np.sum(vector1*vector2)/np.sum(np.maximum(vector1,vector2))
 
-def IoUfromLabel(label,annotations,verbose=1):  #<- TBD, optimise this, extremelly unefficient
+def IoUfromLabel(label,annotations,verbose=1):  #<-   DEPRECATED!!!!!!! see METRICS section below
     isIntersect=annotations.apply(
         lambda row: ((label.startInd>=row.startInd)&(label.startInd<row.stopInd)) | ((row.startInd>=label.startInd)&(row.startInd<label.stopInd))
         ,axis=1)
@@ -949,4 +949,133 @@ def loadBooster(modelId,experimentId,datapath):
     model=xgb.Booster()
     model.load_model(datapath+"/experiments/"+experimentId+"/"+modelId+".json")
     return model
+#_________________________________________________________________________
+
+#_________________________________________________________________________
+#__ METRICS ______________________________________________________________
+def getIou(coordA,coordB):
+    if (coordA[1]<coordB[0])|(coordB[1]<coordA[0]): #NOT INTERSECTION
+        iou=0
+    else:   #INTERSECTION
+        if (coordA[0]<coordB[0])&(coordA[1]>coordB[1]):     #B included in A:
+            inter=coordB[1]-coordB[0]
+            union=coordA[1]-coordA[0]
+        elif (coordB[0]<coordA[0])&(coordB[1]>coordA[1]):   #A included in B
+            inter=coordA[1]-coordA[0]
+            union=coordB[1]-coordB[0]
+        else:
+            inter=np.min((coordA[1]-coordB[0],coordB[1]-coordA[0]))
+            union=np.max((coordA[1]-coordB[0],coordB[1]-coordA[0]))
+        iou=inter/union
+    return iou
+
+def getIoUmatrix(annotations,detections):
+    #get the coords
+    gtCoords=zip(annotations.startInd,annotations.stopInd)
+    outCoords=zip(detections.startInd,detections.stopInd)
+    #calculate the iou vector
+    iouVector=np.array(list(itt.starmap(getIou,itt.product(gtCoords,outCoords))))
+    #reshape to a matrix
+    iouMatrix=iouVector.reshape(len(annotations),len(detections))
+    return iouMatrix
+
+def IoUmatrixToF1(iouMatrix,thresIoU=0.2):
+    #binarize
+    binarized=iouMatrix>thresIoU
+    #calculateF1
+    outF1=(np.sum(np.max(binarized,axis=0))+np.sum(np.max(binarized,axis=1)))/(iouMatrix.shape[0]+iouMatrix.shape[1])
+    return outF1
+
+def annotationPairToGraph(annotations,detections,thresIoU=0.2):
+    #get the coords
+    gtCoords=zip(annotations.startInd,annotations.stopInd)
+    outCoords=zip(detections.startInd,detections.stopInd)
+    #calculate the iou vector
+    iouVector=np.array(list(itt.starmap(getIou,itt.product(gtCoords,outCoords))))
+    #reshape to a matrix
+    iouMatrix=iouVector.reshape(len(annotations),len(detections))
+    #create tables
+    index0=np.apply_along_axis(np.argmax,0,iouMatrix)
+    iou0=np.apply_along_axis(np.max,0,iouMatrix)
+    index1=np.apply_along_axis(np.argmax,1,iouMatrix)
+    iou1=np.apply_along_axis(np.max,1,iouMatrix)
+    
+    tableOut=pd.DataFrame({
+        'indexGT':index0,
+        'iou':iou0
+    })
+
+    tableGT=pd.DataFrame({
+        'indexOut':index1,
+        'iou':iou1
+    })
+
+    tableOut['type']='out'
+    tableGT['type']='gt'
+    tableOut['indexOut']=tableOut.index
+    tableGT['indexGT']=tableGT.index
+    #Correct external indexes of objects not overlapping
+    tableOut.loc[tableOut.iou==0,'indexGT']='NA'
+    tableGT.loc[tableGT.iou==0,'indexOut']='NA'
+    #set tps
+    tableOut['tp']=tableOut.iou>thresIoU
+    tableOut['fp']=tableOut.iou<=thresIoU
+    tableGT['tp']=tableGT.iou>thresIoU
+    tableGT['fn']=tableGT.iou<=thresIoU
+    #calculate metrics
+    recall=np.sum(tableGT['tp'])/len(tableGT)
+    precision=np.sum(tableOut['tp'])/len(tableOut)
+    f1=(np.sum(tableGT['tp'])+np.sum(tableOut['tp']))/(len(tableGT)+len(tableOut))
+    #concatenate tables
+    appended=pd.concat(objs=(tableOut,tableGT),axis=0)
+    #modify values
+    appended['x']=appended['indexGT']
+    appended['y']=appended['indexOut']
+    appended.loc[((appended.type=='out')&(~ appended.tp)),'x']=-10
+    appended.loc[((appended.type=='gt')&(~ appended.tp)),'y']=-10
+    appended['size']=1
+    appended.loc[appended.type=='out','size']=3
+    #create the graph
+    minTPIoU=np.min(appended[appended.tp].iou)
+    fig=px.scatter(appended,x='x',y='y',color='iou',symbol='type',
+    opacity=0.8,symbol_map={'out':'circle-open','gt':'circle'},size='size',
+    color_continuous_scale=
+        ((0.0, 'rgb(40,40,40)'),
+        (0.000001, 'rgb(28,227,255)'),
+        (0.14, 'rgb(56,199,255)'),
+        (0.29, 'rgb(85,170,255)'),
+        (0.42, 'rgb(113,142,255)'),
+        (0.57, 'rgb(142,113,255)'),
+        (0.71, 'rgb(170,85,255)'),
+        (0.86, 'rgb(199,56,255)'),
+        (1.0, 'rgb(227,28,255)')),
+    range_x=(-20,len(tableGT)+10),range_y=(-20,len(tableOut)+10),
+    title='by-Event evaluation summary<br><sup>F1(@IoU>'+str(thresIoU)+')='+str(round(f1,4))+' | minimum TP IoU: '+str(round(minTPIoU,4))+'</sup>',
+    hover_data={'x':False,
+    'y':False,
+    'tp':False,
+    'fp':False,
+    'fn':False,
+    'size':False,
+    'type':False,
+    'iou':':.4f', # customize hover for column of y attribute
+    'indexGT':True,
+    'indexOut':True
+    })
+    for t in fig.data:
+        t.marker.line.width = 2
+    fig.update_xaxes(title_text=str(len(tableGT))+' ANNOTATIONS | recall(@IoU>'+str(thresIoU)+')= '+str(round(recall,4)))
+    fig.update_yaxes(title_text=str(len(tableOut))+' DETECTIONS | precision(@IoU>'+str(thresIoU)+')= '+str(round(precision,4)))
+    fig.add_vline(x=-5,line_dash='dash')
+    fig.add_hline(y=-5,line_dash='dash')
+    #----------------------------------------------------------------------->
+    # https://stackoverflow.com/questions/61827165/plotly-how-to-handle-overlapping-colorbar-and-legends
+    # @vestland answer
+    """ fig.update_layout(coloraxis_colorbar=dict(yanchor="top", y=1, x=0,
+                                            ticks="outside",
+                                            ticksuffix=" bills")) """
+    # @bitbang answer
+    fig.update_layout(legend_orientation="h")
+    #<----------------------------------------------------------------------
+    return fig
 #_________________________________________________________________________
