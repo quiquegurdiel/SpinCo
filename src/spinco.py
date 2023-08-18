@@ -986,6 +986,22 @@ def IoUmatrixToF1(iouMatrix,thresIoU=0.2):
     outF1=(np.sum(np.max(binarized,axis=0))+np.sum(np.max(binarized,axis=1)))/(iouMatrix.shape[0]+iouMatrix.shape[1])
     return outF1
 
+def annotationPairToMetrics(annotations,detections,thresIoU=0.3):
+    #get the coords
+    gtCoords=zip(annotations.startInd,annotations.stopInd)
+    outCoords=zip(detections.startInd,detections.stopInd)
+    #calculate the iou vector
+    iouVector=np.array(list(itt.starmap(getIou,itt.product(gtCoords,outCoords))))
+    #reshape to a matrix
+    iouMatrix=iouVector.reshape(len(annotations),len(detections))
+    #binarize
+    binarized=iouMatrix>thresIoU
+    #calculateF1
+    outF1=(np.sum(np.max(binarized,axis=0))+np.sum(np.max(binarized,axis=1)))/(len(annotations)+len(detections))
+    recall=np.sum(np.max(binarized,axis=1))/len(annotations)
+    precision=np.sum(np.max(binarized,axis=0))/len(detections)
+    return outF1,recall,precision
+
 def annotationPairToGraph(annotations,detections,thresIoU=0.2):
     #get the coords
     gtCoords=zip(annotations.startInd,annotations.stopInd)
