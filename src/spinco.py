@@ -979,7 +979,7 @@ def getIoUmatrix(annotations,detections):
     iouMatrix=iouVector.reshape(len(annotations),len(detections))
     return iouMatrix
 
-def IoUmatrixToF1(iouMatrix,thresIoU=0.2):
+def IoUmatrixToF1(iouMatrix,thresIoU=0.3):
     #binarize
     binarized=iouMatrix>thresIoU
     #calculateF1
