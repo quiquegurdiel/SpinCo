@@ -1003,6 +1003,45 @@ def annotationPairToMetrics(annotations,detections,thresIoU=0.3):
     precision=np.sum(np.max(binarized,axis=0))/len(detections)
     return outF1,recall,precision
 
+def getMetricTables(annotations,detections,thresIoU=0.3):
+    #get the coords
+    gtCoords=zip(annotations.startInd,annotations.stopInd)
+    outCoords=zip(detections.startInd,detections.stopInd)
+    #calculate the iou vector
+    iouVector=np.array(list(itt.starmap(getIou,itt.product(gtCoords,outCoords))))
+    #reshape to a matrix
+    iouMatrix=iouVector.reshape(len(annotations),len(detections))
+    #create tables
+    index0=np.apply_along_axis(np.argmax,0,iouMatrix)
+    iou0=np.apply_along_axis(np.max,0,iouMatrix)
+    index1=np.apply_along_axis(np.argmax,1,iouMatrix)
+    iou1=np.apply_along_axis(np.max,1,iouMatrix)
+    
+    tableOut=pd.DataFrame({
+        'indexGT':index0,
+        'iou':iou0
+    })
+
+    tableGT=pd.DataFrame({
+        'indexOut':index1,
+        'iou':iou1
+    })
+
+    tableOut['type']='out'
+    tableGT['type']='gt'
+    tableOut['indexOut']=tableOut.index
+    tableGT['indexGT']=tableGT.index
+    #Correct external indexes of objects not overlapping
+    tableOut.loc[tableOut.iou==0,'indexGT']='NA'
+    tableGT.loc[tableGT.iou==0,'indexOut']='NA'
+    #set tps
+    tableOut['tp']=tableOut.iou>thresIoU
+    tableOut['fp']=tableOut.iou<=thresIoU
+    tableGT['tp']=tableGT.iou>thresIoU
+    tableGT['fn']=tableGT.iou<=thresIoU
+
+    return tableOut,tableGT
+
 def annotationPairToGraph(annotations,detections,thresIoU=0.2):
     #get the coords
     gtCoords=zip(annotations.startInd,annotations.stopInd)
