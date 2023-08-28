@@ -741,6 +741,9 @@ def loadCOGNITIONSpindles(path,returnSignals=False):
 
     else:
         return annotations, signalsMetadata
+    
+def loadCOGNITIONHypnogram(subject,cognipath):
+    return loadPickle(cognipath+'/stages/'+subject+'.pkl')
 #_________________________________________________________________________
 
 #_________________________________________________________________________
