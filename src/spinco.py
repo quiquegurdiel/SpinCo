@@ -13,6 +13,7 @@ import pickle as pkl
 import xgboost as xgb
 import os
 import plotly.express as px
+import tensorflow as tf
 
 #__________________________________________________________________________
 #__ HELPERS _______________________________________________________________
@@ -730,7 +731,7 @@ def loadCOGNITIONSpindles(path,returnSignals=False):
         lambda row: seconds2index(row.stopTime,row.samplerate) , axis=1)
 
     if returnSignals:
-        #load signals from pickle
+        #load signals from pickle --------- RESAMPLE TO 200Hz HARCODED
         signals={}
         for index, row in signalsMetadata.iterrows():
             signalpath=path+"/signals/"+row.filename
@@ -941,8 +942,11 @@ def labelVectorToAnnotations(labelVector,samplerate):
 #__ EXPERIMENT & MODEL MANAGEMENT ________________________________________
 def loadExperiment(experimentId,datapath):
     experimentModels=loadPickle(datapath+"/experiments/"+experimentId+"/experimentModels.pkl")
-    featureSelection=loadPickle(datapath+"/experiments/"+experimentId+"/featureSelection.pkl")
-    return experimentModels, featureSelection
+    if os.path.exists(datapath+"/experiments/"+experimentId+"/featureSelection.pkl"):
+        featureSelection=loadPickle(datapath+"/experiments/"+experimentId+"/featureSelection.pkl")
+        return experimentModels, featureSelection
+    else:
+        return experimentModels
 
 def loadModel(modelId,experimentId,datapath):   #TBD: this should be generic
     model=xgb.XGBClassifier()
@@ -952,6 +956,10 @@ def loadModel(modelId,experimentId,datapath):   #TBD: this should be generic
 def loadBooster(modelId,experimentId,datapath):
     model=xgb.Booster()
     model.load_model(datapath+"/experiments/"+experimentId+"/"+modelId+".json")
+    return model
+
+def loadDL(modelId,experimentId,datapath):
+    model=loadPickle(datapath+"/experiments/"+experimentId+"/"+modelId+".pkl")
     return model
 #_________________________________________________________________________
 
@@ -1137,4 +1145,55 @@ def annotationPairToGraph(annotations,detections,thresIoU=0.2):
     fig.update_layout(legend_orientation="h")
     #<----------------------------------------------------------------------
     return fig
+#_________________________________________________________________________
+
+#_________________________________________________________________________
+#__ DEEP LEARNING ________________________________________________________
+class spinGen(tf.keras.utils.Sequence): #<-----------------------------------   custom generator
+    def __init__(self, slides, labels, allExtended,
+                batch_size=1024,
+                shuffle=True):
+        
+        #copy variables
+        self.slides = slides.copy()
+        self.labels = labels.copy()
+        self.allExtended = allExtended.copy()
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        #compute df and n
+        if shuffle:
+            self.df=allExtended.sample(frac=1)
+        else:
+            self.df=allExtended
+        self.n = len(self.df)
+
+    def __getitem__(self, index):
+        batch = self.df[index * self.batch_size:(index + 1) * self.batch_size]
+        return self.__get_data(batch)
+
+    def __get_data(self,batch):
+        #inputs
+        index_batch = batch['trainIndex']
+        subject_batch = batch['subjectId']
+        inputs = np.asarray([self.__get_input(index,subject) for index,subject in zip(index_batch,subject_batch)])
+        #outputs
+        outputs= np.asarray([self.__get_label(index,subject) for index,subject in zip(index_batch,subject_batch)])
+        return inputs, outputs
+
+    def __get_input(self, index,subject):
+        slide=self.slides[subject][index]
+        #slide=slide[...,np.newaxis]
+        return slide
+    
+    def __get_label(self, index,subject):
+        label=self.labels[subject][index]
+        label=label[...,np.newaxis]
+        return label
+
+    def __len__(self):
+        return self.n // self.batch_size
+
+    def on_epoch_end(self):
+        if self.shuffle:
+            self.df=self.df.sample(frac=1)
 #_________________________________________________________________________
