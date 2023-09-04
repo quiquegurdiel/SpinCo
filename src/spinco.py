@@ -1182,7 +1182,7 @@ class spinGen(tf.keras.utils.Sequence): #<-----------------------------------   
 
     def __get_input(self, index,subject):
         slide=self.slides[subject][index]
-        #slide=slide[...,np.newaxis]
+        slide=slide[...,np.newaxis]
         return slide
     
     def __get_label(self, index,subject):
