@@ -959,7 +959,7 @@ def loadBooster(modelId,experimentId,datapath):
     return model
 
 def loadDL(modelId,experimentId,datapath):
-    model=loadPickle(datapath+"/experiments/"+experimentId+"/"+modelId+".pkl")
+    model = tf.keras.models.load_model(datapath+"/experiments/"+experimentId+"/"+modelId+".keras")
     return model
 #_________________________________________________________________________
 
