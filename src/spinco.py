@@ -702,6 +702,76 @@ def loadDREAMSSpindles(path,equalize=True):
 
     return signals, annotations, signalsMetadata
 
+def loadDREAMSSpindlesDemo(path,equalize=True):
+    #signalsMetadata
+    signalsMetadata=pd.read_csv(path+'\\signalsMetadata.csv')
+    signalsMetadata['subjectId']=signalsMetadata.apply(
+        lambda row: str(row.subjectId).zfill(4),axis=1)
+
+    #subjectsMetadata
+    subjectsMetadata=pd.read_csv(path+'\\subjectsMetadata.csv')
+    subjectsMetadata['subjectId']=subjectsMetadata.apply(
+        lambda row: str(row.subjectId).zfill(4),axis=1)
+
+    #load signals from .txt
+    signals={}
+    for index, row in signalsMetadata.iterrows():
+        signals[row.subjectId]=np.loadtxt(path+'\\DREAMS\\'+row.filename,skiprows=1)
+
+    if equalize:
+        #------------------->
+        masterSamplerate=200
+        masterDuration=1800.0
+        #<-------------------
+        originalSignals=signals.copy()
+        timepoints=np.linspace(0.0,masterDuration,int(masterDuration)*masterSamplerate)
+        for key, signal in originalSignals.items():
+            metadata=signalsMetadata.loc[np.where(signalsMetadata.subjectId==key)[0][0]]
+            signalDuration=float(len(signal))/metadata.samplerate
+            if metadata.samplerate!=masterSamplerate:
+                print("SubjectId: "+metadata.subjectId+"--------------")
+                print("resampling from "+str(metadata.samplerate)+" to "+str(masterSamplerate))
+                thisTimepoints=np.linspace(0.0,signalDuration,len(signal))
+                aux=interp.interp1d(thisTimepoints,signal,kind='linear')
+                signals[key]=aux(timepoints)
+            if signalDuration > masterDuration:
+                print("SubjectId: "+metadata.subjectId+"--------------")
+                print("duration discrepancy, removing last "+str(round(signalDuration-masterDuration,3))+" seconds")
+                signals[key]=signal[:int(masterDuration)*masterSamplerate]
+        #update metadata
+        signalsMetadata.samplerate=masterSamplerate
+    signalsMetadata['database']='DREAMS'
+
+
+    #spindle annotations
+    annotationsMetadata=pd.read_csv(path+'\\annotationsMetadata.csv')
+    annotationsMetadata['subjectId']=annotationsMetadata.apply(
+        lambda row: str(row.subjectId).zfill(4),axis=1)
+    annotationsMetadata['labelerId']=annotationsMetadata.apply(
+        lambda row: str(row.labelerId).zfill(4),axis=1)
+
+    #populate annotations metadata
+    annotations=pd.DataFrame(columns=['startTime','duration','channel','subjectId','labelerId','type'])
+    for index,row in annotationsMetadata.iterrows():
+        aux=pd.read_csv(path+'\\DREAMS\\'+row.filename,index_col=False,skiprows=1,sep='\t',names=["startTime","duration"])
+        aux['channel']=row.channel
+        aux['subjectId']=row.subjectId
+        aux['labelerId']=row.labelerId
+        aux['type']='spindle'
+        annotations=pd.concat((annotations,aux))
+
+    #add stop and index colums
+    annotations=annotations.merge(signalsMetadata[['subjectId','samplerate']],how='left',on='subjectId')
+    annotations['stopTime']=annotations.apply(
+        lambda row: row.startTime+row.duration , axis=1)
+    annotations['startInd']=annotations.apply(
+        lambda row: seconds2index(row.startTime,row.samplerate) , axis=1)
+    annotations['stopInd']=annotations.apply(
+        lambda row: seconds2index(row.stopTime,row.samplerate) , axis=1)
+    annotations=annotations.reset_index()
+
+    return signals, annotations, signalsMetadata
+
 def loadCOGNITIONSpindles(path,returnSignals=False):
     #signalsMetadata
     signalsMetadata=pd.read_csv(path+'\\signals\\signalsMetadata.csv')
@@ -1049,7 +1119,7 @@ def getMetricTables(annotations,detections,thresIoU=0.3):
 
     return tableOut,tableGT
 
-def annotationPairToGraph(annotations,detections,thresIoU=0.2):
+def annotationPairToGraph(annotations,detections,thresIoU=0.3):
     #get the coords
     gtCoords=zip(annotations.startInd,annotations.stopInd)
     outCoords=zip(detections.startInd,detections.stopInd)
