@@ -12,9 +12,12 @@
 
 3- add [your folder]/src to the path environment variable of your system manually (in order to use import of the library)
 
-4- run the notebooks in [your folder]/demo
+### Demo:
+1- Download publicly available DREAMS database from "Stephanie Devuyst. (2005). The DREAMS Databases and Assessment Algorithm [Data set]. Zenodo. https://doi.org/10.5281/zenodo.2650142"
 
-5- have fun
+2- Extract the .rar content to [your folder]/demo/DREAMS
+
+3- Run the notebooks in order
 
 ### Cite:
 If you use this code kindly cite:
