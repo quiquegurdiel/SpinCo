@@ -1,8 +1,8 @@
 # SpinCo
-## Relation of spindles with cognitive variables using the COGNITION database
+## Spindle detection application for Cognition database
 
 ### Required steps:
-1- clone repository
+1- clone repository to [your folder]
 
 2- create spinco.env in the repository folder file like:
 
@@ -10,11 +10,21 @@
     
 (spinco.env is a environment file -IT IS NEVER SHARED THROUGH GIT, see .gitignore- it serves to define variables specific of each machine and/or user)
 
-3- the database folder you are pointing to should include the csv with the results of the cognitive tests in the patients, contact enrique.gurdiel(at)uva.es if you have errors of missing .csv files related to it
+3- add [your folder]/src to the path environment variable of your system manually (in order to use import of the library)
 
-4- have fun
+4- run the notebooks in [your folder]/demo
+
+5- have fun
+
+### Cite:
+If you use this code kindly cite:
+"Beyond the ground truth. XGBoost by-sample model applied to the problem of sleep spindle event detection. E. Gurdiel, J. Gómez-Pilar and Roberto Hornero. (To Be Published)"
 
 ### Disclaimer:
+This is research code, is distributed with no guaranty.
+
+For any doubt regarding funcionality contact quiquegurdiel (at) gmail.com.
+
 You should manage the dependencies by yourself, pip install [library name] should be enough for all libraries, check the imports at the begining of the notebooks.
 
 Using virtual environmets is higly recommended (always).
