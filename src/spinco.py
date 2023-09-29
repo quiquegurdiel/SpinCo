@@ -813,6 +813,42 @@ def loadCOGNITIONSpindles(path,returnSignals=False):
     else:
         return annotations, signalsMetadata
     
+def loadCOGNITIONSpindles_v2(path,returnSignals=False):
+    #signalsMetadata
+    signalsMetadata=pd.read_csv(path+'\\signals\\signalsMetadata.csv')
+    signalsMetadata['isOriginalSamplerate']=False
+    #-------------------------------------->
+    signalsMetadata['database']='COGNITION_v2'
+    #<--------------------------------------
+
+    #annotations
+    annotations=pd.read_csv(path+'\\annotations\\annotations.csv')
+    
+    #add stop and index colums
+    annotations['samplerate']=200
+    annotations['stopTime']=annotations.apply(
+        lambda row: row.startTime+row.duration , axis=1)
+    annotations['startInd']=annotations.apply(
+        lambda row: seconds2index(row.startTime,row.samplerate) , axis=1)
+    annotations['stopInd']=annotations.apply(
+        lambda row: seconds2index(row.stopTime,row.samplerate) , axis=1)
+
+    if returnSignals:
+        #load signals from pickle --------- RESAMPLED TO 200Hz
+        signals={}
+        for subject in np.unique(signalsMetadata.subjectId):
+            signals[subject]={}
+            for channel in np.unique(signalsMetadata.channel):
+                signals[subject][channel]=np.array([])
+        for index, row in signalsMetadata.iterrows():
+            signalpath=path+"/signals/"+row.filename
+            signals[row.subjectId][row.channel]=loadPickle(signalpath)
+
+        return signals, annotations, signalsMetadata
+
+    else:
+        return annotations, signalsMetadata
+    
 def loadCOGNITIONHypnogram(subject,cognipath):
     return loadPickle(cognipath+'/stages/'+subject+'.pkl')
 #_________________________________________________________________________
