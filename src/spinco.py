@@ -37,7 +37,7 @@ def window2half(window):
 
 def padVectorBegin(vector,amount,method):
     if not method in ['closest','zero','nan']:
-        raise ValueError("[method] parameter: only 'closest', 'zero' or 'nan allowed")
+        raise ValueError("[method] parameter: only 'closest', 'zeros' or 'nan' allowed")
     if method=='closest':
         vector=np.concatenate( (np.ones((amount,))*vector[0] ,vector) )
     elif method=='zeros':
@@ -48,7 +48,7 @@ def padVectorBegin(vector,amount,method):
 
 def padVectorEnd(vector,amount,method):
     if not method in ['closest','zero','nan']:
-        raise ValueError("[method] parameter: only 'closest', 'zero' or 'nan allowed")
+        raise ValueError("[method] parameter: only 'closest', 'zeros' or 'nan' allowed")
     if method=='closest':
         vector=np.concatenate( (vector, np.ones((amount,))*vector[-1]) )
     elif method=='zeros':
@@ -58,8 +58,8 @@ def padVectorEnd(vector,amount,method):
     return vector
 
 def padVectorBothSides(vector,amount,method):
-    if not method in ['closest','zero','nan']:
-        raise ValueError("[method] parameter: only 'closest', 'zero' or 'nan allowed")
+    if not method in ['closest','zeros','nan']:
+        raise ValueError("[method] parameter: only 'closest', 'zeros' or 'nan' allowed")
     else:
         vector=padVectorBegin(vector,amount,method)
         vector=padVectorEnd(vector,amount,method)
