@@ -968,8 +968,19 @@ def getFilepath(window,subject,characteristic,bandName,samplerate,featurespath):
     filepath=featurespath+'/'+str(samplerate)+'fs/'+str(window)+'win/'+subject+'/'+filename
     return filepath
 
+def getFilepath_v2(window,subject,channel,characteristic,bandName,samplerate,featurespath):
+    filename=str(window)+'_'+subject+'_'+channel+'_'+characteristic+'_'+bandName+'.fd'
+    filepath=featurespath+'/'+str(samplerate)+'fs/'+str(window)+'win/'+subject+'/'+channel+'/'+filename
+    return filepath
+
 def saveFeature(vector,window,subject,characteristic,bandName,samplerate,featurespath):
     filepath=getFilepath(window,subject,characteristic,bandName,samplerate,featurespath)
+    if not os.path.exists(filepath):
+        print('saving feature: '+filepath)
+        dumpPickle(filepath,vector)
+    
+def saveFeature_v2(vector,window,subject,channel,characteristic,bandName,samplerate,featurespath):
+    filepath=getFilepath_v2(window,subject,channel,characteristic,bandName,samplerate,featurespath)
     if not os.path.exists(filepath):
         print('saving feature: '+filepath)
         dumpPickle(filepath,vector)
@@ -977,6 +988,12 @@ def saveFeature(vector,window,subject,characteristic,bandName,samplerate,feature
 def loadFeature(window,subject,characteristic,bandName,samplerate,featurespath):
     filename=str(window)+'_'+subject+'_'+characteristic+'_'+bandName+'.fd'
     filepath=featurespath+'/'+str(samplerate)+'fs/'+str(window)+'win/'+subject+'/'+filename
+    vector=loadPickle(filepath)
+    return vector
+
+def loadFeature_v2(window,subject,channel,characteristic,bandName,samplerate,featurespath):
+    filename=str(window)+'_'+subject+'_'+channel+'_'+characteristic+'_'+bandName+'.fd'
+    filepath=featurespath+'/'+str(samplerate)+'fs/'+str(window)+'win/'+subject+'/'+channel+'/'+filename
     vector=loadPickle(filepath)
     return vector
 

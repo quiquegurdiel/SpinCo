@@ -24,10 +24,10 @@ If you use this code kindly cite:
 "Beyond the ground truth. XGBoost by-sample model applied to the problem of sleep spindle event detection. E. Gurdiel, J. Gómez-Pilar and Roberto Hornero. (To Be Published)"
 
 ### Disclaimer:
-This is research code, is distributed with no guaranty.
+This is research code, is distributed with no guaranty. No model is shared in this repository. This repository is not designed to be used in a production environment. The intention is to facilitate the actual code used in the research, not a ready-to-use product.
 
 For any doubt regarding funcionality contact quiquegurdiel (at) gmail.com.
 
 You should manage the dependencies by yourself, pip install [library name] should be enough for all libraries, check the imports at the begining of the notebooks.
 
-Using virtual environmets is higly recommended (always).
+Using virtual environmets is higly recommended.
