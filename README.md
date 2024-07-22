@@ -31,3 +31,30 @@ For any doubt regarding funcionality contact quiquegurdiel (at) gmail.com.
 You should manage the dependencies by yourself, pip install [library name] should be enough for all libraries, check the imports at the begining of the notebooks.
 
 Using virtual environmets is higly recommended.
+
+### Structure of the repository:
+Under SpinCo/src there is file named spinco.py that is the library used in the notebooks. The file is separated in different sections to facilitate the search for specific functions, in particular:
+- Helpers
+- Mathematics
+- Filtering
+- Band statistic
+- Time domain input
+- Frequency domain input
+- Time-window metrics
+- Spindle Detection 1
+- Database management
+- Feature & label management
+- Experiment & model management
+- Metrics
+We recomend to run the demo and analise the functions that are called in order to understand the structure of the actual research notebooks, reading straight from the library might be less intuitive and could en up in reading code that is not actually used on the part of interest of the reader.
+
+### Feature extraction:
+The notebooks used for feature extraction are right under Spinco and use the prefixes "Extraction001_" to "Extraction007_".
+
+### Feature selection:
+Feature selection notebook is right under SpinCo in the file "Experiment008_featureSelection_DREAMS.ipynb".
+
+### Experiments:
+Under SpinCo/experiments there are several experiments, the results published are computed in the following experiments that have a subfolder associated:
+- 010_COGNITION_testing26Features_7S_09aa67d8-c865-4a95-a7c5-de7b6adadbce
+- 011_MASS_26Features_final_5388ca14-a315-4598-97c2-d44175b24937
