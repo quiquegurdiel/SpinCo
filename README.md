@@ -24,7 +24,7 @@ If you use this code kindly cite:
 "Beyond the ground truth; XGBoost model applied to the problem of sleep spindle event detection. E. Gurdiel, J. Gómez-Pilar, G. C. Gutiérrez-Tobal, F. del Campo, and R. Hornero. (To Be Published)"
 
 ### Disclaimer:
-This is research code, is distributed with no guaranty. No model is shared in this repository. This repository is not designed to be used in a production environment. The intention is to facilitate the actual code used in the research, not a ready-to-use product.
+This is research code, is distributed with no guaranty. No model, signal or feature vector is shared in this repository. This repository is not designed to be used in a production environment. The intention is to facilitate the actual code used in the research, not a ready-to-use product.
 
 For any doubt regarding funcionality contact quiquegurdiel (at) gmail.com.
 
@@ -46,6 +46,7 @@ Under SpinCo/src there is file named spinco.py that is the library used in the n
 - Feature & label management
 - Experiment & model management
 - Metrics
+
 We recomend to run the demo and analise the functions that are called in order to understand the structure of the actual research notebooks, reading straight from the library might be less intuitive and could en up in reading code that is not actually used on the part of interest of the reader.
 
 ### Feature extraction:
