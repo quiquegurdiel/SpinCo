@@ -21,7 +21,7 @@
 
 ### Cite:
 If you use this code kindly cite:
-"Beyond the ground truth. XGBoost by-sample model applied to the problem of sleep spindle event detection. E. Gurdiel, J. Gómez-Pilar and Roberto Hornero. (To Be Published)"
+"Beyond the ground truth; XGBoost model applied to the problem of sleep spindle event detection. E. Gurdiel, J. Gómez-Pilar, G. C. Gutiérrez-Tobal, F. del Campo, and R. Hornero. (To Be Published)"
 
 ### Disclaimer:
 This is research code, is distributed with no guaranty. No model is shared in this repository. This repository is not designed to be used in a production environment. The intention is to facilitate the actual code used in the research, not a ready-to-use product.
@@ -58,3 +58,6 @@ Feature selection notebook is right under SpinCo in the file "Experiment008_feat
 Under SpinCo/experiments there are several experiments, the results published are computed in the following experiments that have a subfolder associated:
 - 010_COGNITION_testing26Features_7S_09aa67d8-c865-4a95-a7c5-de7b6adadbce
 - 011_MASS_26Features_final_5388ca14-a315-4598-97c2-d44175b24937
+
+### Inter-expert variability and inter-expert generalization test:
+This part is developed right under SpinCo in the notebook "Experiment007_interpredictability.ipynb".
