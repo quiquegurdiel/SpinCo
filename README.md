@@ -21,7 +21,7 @@
 
 ### Cite:
 If you use this code kindly cite:
-"Beyond the ground truth; XGBoost model applied to the problem of sleep spindle event detection. E. Gurdiel, J. Gómez-Pilar, G. C. Gutiérrez-Tobal, F. del Campo, and R. Hornero. (To Be Published)"
+"Beyond the ground truth, XGBoost model applied to sleep spindle event detection E. Gurdiel, J. Gómez-Pilar, F. Vaquerizo-Villar, G. C. Gutiérrez-Tobal, F. del Campo, and R. Hornero. (To Be Published)"
 
 ### Disclaimer:
 This is research code, is distributed with no guaranty. No model, signal or feature vector is shared in this repository. This repository is not designed to be used in a production environment. The intention is to facilitate the actual code used in the research, not a ready-to-use product.
