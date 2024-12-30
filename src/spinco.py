@@ -13,8 +13,10 @@ import pickle as pkl
 import xgboost as xgb
 import os
 import plotly.express as px
+import plotly.io as pio
 import tensorflow as tf
-
+import matplotlib.pyplot as plt
+from scipy import stats as sst
 #__________________________________________________________________________
 #__ HELPERS _______________________________________________________________
 def seconds2index(input,sr):
@@ -963,6 +965,7 @@ def labelingProcess(labelVector,maxTimeClose,minDuration,samplerate,verbose=0):
                 print("Number of detections: "+str(len(detections)))
     return labelVector
 
+
 def getFilepath(window,subject,characteristic,bandName,samplerate,featurespath):
     filename=str(window)+'_'+subject+'_'+characteristic+'_'+bandName+'.fd'
     filepath=featurespath+'/'+str(samplerate)+'fs/'+str(window)+'win/'+subject+'/'+filename
@@ -1007,7 +1010,8 @@ def loadFeatureMatrix(subjectList,featureSelection,signalsMetadata,samplerate,da
     # initialise the feature matrix
     featureMatrix=np.zeros((np.sum(thisSignals.excerptDimension),len(featureSelection)))
     # fill the matrix
-    for i,feature in featureSelection.iterrows():   #iterate the featrures
+    for i,feature in featureSelection.iterrows():
+        #iterate the featrures
         characteristic=feature['characteristic']
         bandName=feature['bandName']
         window=feature['window']
@@ -1019,6 +1023,9 @@ def loadFeatureMatrix(subjectList,featureSelection,signalsMetadata,samplerate,da
             featurespath=datapath+"/"+row.database+"/features"
             featureValue[auxStartInd:auxStartInd+excerptDim]=loadFeature(str(window),subject,characteristic,bandName,str(samplerate),featurespath)
             auxStartInd=auxStartInd+excerptDim
+        featureValue[np.isinf(featureValue)]=[0]
+        featureValue[np.isnan(featureValue)] = [0]
+
         featureMatrix[:,i]=featureValue #   fill a row
     return featureMatrix
 
