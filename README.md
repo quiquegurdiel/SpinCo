@@ -4,11 +4,13 @@
 ### Required steps:
 1- clone repository to [your folder]
 
-2- edit lab.env in the repository folder file like:
+2- create a virtual envirionment witk Python 3.10 called Spinco and, inside the environment, run pip install -r requirements.txt
+
+3- edit lab.env in the repository folder file like:
 
     DATAPATH='[the path to COGNITION database in your computer]'
 
-3- add [your folder]/src to the path environment variable of your system manually (in order to use import of the library)
+4- add [your folder]/src to the path environment variable of your system manually (in order to use import of the library)
 
 ### Demo:
 
