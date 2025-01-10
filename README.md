@@ -1,10 +1,12 @@
 # SpinCo
 ## Spindle detection application for Cognition database
 
-### Required steps:
+### Required steps for setup:
 1- clone repository to [your folder]
 
-2- edit lab.env in the repository folder file like:
+2- créate a virtual environment with Python 3.10 called SpinCo and, inside the environment, install dependencies running "pip install -r requirements.txt"
+
+3- edit lab.env in the repository folder file like:
 
     DATAPATH='[the path to COGNITION database in your computer]'
 
