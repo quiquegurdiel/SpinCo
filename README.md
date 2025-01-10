@@ -4,20 +4,21 @@
 ### Required steps:
 1- clone repository to [your folder]
 
-2- create spinco.env in the repository folder file like:
+2- edit lab.env in the repository folder file like:
 
     DATAPATH='[the path to COGNITION database in your computer]'
-    
-(spinco.env is a environment file -IT IS NEVER SHARED THROUGH GIT, see .gitignore- it serves to define variables specific of each machine and/or user)
 
 3- add [your folder]/src to the path environment variable of your system manually (in order to use import of the library)
 
 ### Demo:
-1- Download publicly available DREAMS database from "Stephanie Devuyst. (2005). The DREAMS Databases and Assessment Algorithm [Data set]. Zenodo. https://doi.org/10.5281/zenodo.2650142"
 
-2- Extract the .rar content to [your folder]/demo/DREAMS
+1- Download publicly available DREAMS database from "Stephanie Devuyst. (2005). The DREAMS Databases and Assessment Algorithm [Data set]. Zenodo. Specifically, download "DatabaseSpindles.rar" from https://doi.org/10.5281/zenodo.2650142".
 
-3- Run the notebooks in order
+2- Extract the .rar content to [your folder]/demo/DREAMS. 
+
+3- Run the notebooks of SpinCo/demo in order (000_DataSplit, 001_FeatureExtraction, 002_Training, 003_ValidationperModel_Testing_E1_IoU_0.2, 003_ValidationperModel_Testing_E1_IoU_0.3).
+
+For the sake of completeness, we have also included in SpinCo/demo  pickle files (".pkl") with the feature selection results and XGBoost models configuration, as well as an experiments subfolder with the trained XGBoost models, so the final users can check and replicate the results.
 
 ### Cite:
 If you use this code kindly cite:
@@ -33,7 +34,7 @@ You should manage the dependencies by yourself, pip install [library name] shoul
 Using virtual environmets is higly recommended.
 
 ### Structure of the repository:
-Under SpinCo/src there is file named spinco.py that is the library used in the notebooks. The file is separated in different sections to facilitate the search for specific functions, in particular:
+Under src folder there is file named spinco.py that is the library used in the notebooks. The file is separated in different sections to facilitate the search for specific functions, in particular:
 - Helpers
 - Mathematics
 - Filtering
@@ -50,15 +51,27 @@ Under SpinCo/src there is file named spinco.py that is the library used in the n
 We recomend to run the demo and analise the functions that are called in order to understand the structure of the actual research notebooks, reading straight from the library might be less intuitive and could en up in reading code that is not actually used on the part of interest of the reader.
 
 ### Feature extraction:
-The notebooks used for feature extraction are right under SpinCo and use the prefixes "Extraction001_" to "Extraction007_". The feature extraction notebooks include all the steps required for preprocessing.
+The notebooks used for feature extraction are right under SpinCo folder and use the prefixes "Extraction_". The feature extraction notebooks include all the steps required for preprocessing.
 
 ### Feature selection:
-Feature selection notebook is right under SpinCo in the file "Experiment008_featureSelection_DREAMS.ipynb".
+Feature selection notebook is right under SpinCo folder in the file "FeatureSelection_Bootstrap_DREAMS.ipynb". Feature selection results are also stored in pickle files (".pkl")
 
 ### Experiments:
-Under SpinCo/experiments there are several experiments, the results published are computed in the following experiments that have a subfolder associated:
-- 010_COGNITION_testing26Features_7S_09aa67d8-c865-4a95-a7c5-de7b6adadbce
-- 011_MASS_26Features_final_5388ca14-a315-4598-97c2-d44175b24937
+Under SpinCo/experiments folder there are several experiments, the results published are computed in the following experiments that have a subfolder associated:
+- MASS_Nsel_250: main results of MASS database
+- COGNITION_Nsel_250: main results of COGNITION database
+- MASS_Nsel_500: Performance comparison of SpinCo for different subsets of features
+- MASS_Nsel_750: Performance comparison of SpinCo for different subsets of features
+- MASS_Nsel_900: Performance comparison of SpinCo for different subsets of features
+- MASS_Nsel_1000: Performance comparison of SpinCo for different subsets of features.
+- COGNITION_Nsel_100: Performance comparison of SpinCo for different subsets of features.
+- COGNITION_Nsel_500: Performance comparison of SpinCo for different subsets of features.
+- COGNITION_Nsel_750: Performance comparison of SpinCo for different subsets of features.
+- COGNITION_Nsel_900: Performance comparison of SpinCo for different subsets of features.
+- COGNITION_Nsel_1000: Performance comparison of SpinCo for different subsets of features.
+- COGNITION_Nsel_x: Performance comparison of SpinCo for different subsets of features.
 
-### Inter-expert variability and inter-expert generalization test:
-This part is developed right under SpinCo in the notebook "Experiment007_interpredictability.ipynb".
+COGNITION-related subfolders contain jupyter notebooks (".ipynb") for data split (000_DataSplit), XGBoost models training (001_Training), and validation and testing (002_ValidationperModel_Testing_E1_IoU_0.2 and 002_ValidationperModel_Testing_E1_IoU_0.3). There are also pickle files (".pkl") with the feature selection results and XGBoost models configuration. COGNITION_Nsel_250 subfolder also contains Jupyter notebooks for per-subject spindles characteristics analysis (008_Correlations_E1_IoU_0.2 and 008_Correlations_E1_IoU_0.3). 
+
+MASS-related subfolders contain Jupyter notebooks (".ipynb") for data split (000_DataSplit), XGBoost models training (001_Training), validation and testing (002_ValidationperModel_Testing_E1_IoU_0.2, 002_ValidationperModel_Testing_E1_IoU_0.3, 002_ValidationperModel_Testing_E2_IoU_0.2, and 002_ValidationperModel_Testing_E2_IoU_0.3). There are also pickle files (".pkl") with the feature selection results and XGBoost models configuration. MASS_Nsel_250 subfolder also contains Jupyter notebooks for per-subject spindles characteristics analysis (003_Correlations_E1_IoU_0.2, 003_Correlations_E1_IoU_0.3, 003_Correlations_E2_IoU_0.2, and 003_Correlations_E2_IoU_0.3), an inter-expert variability and inter-expert generalization test (004_Interpredictability), and inter-expert per-subject spindles characteristics analysis (005_InterExpertCorrelations_E1_IoU_0.2, 005_InterExpertCorrelations_E1_IoU_0.3, 005_InterExpertCorrelations_E2_IoU_0.2, and 005_InterExpertCorrelations_E2_IoU_0.3).
+

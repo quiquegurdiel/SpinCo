@@ -1,7 +1,6 @@
 /venv/
+/SpinCo/idea/
 *.html
-lab.env
-*.env
 *.mat
 /src/__pycache__/
 /demo/DREAMS
