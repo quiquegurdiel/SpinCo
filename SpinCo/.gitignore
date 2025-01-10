@@ -1,5 +1,4 @@
 /venv/
-/SpinCo/idea/
 *.html
 *.mat
 /src/__pycache__/
