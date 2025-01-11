@@ -20,7 +20,7 @@
 
 3- Run the notebooks of SpinCo/demo in order (000_DataSplit, 001_FeatureExtraction, 002_Training, 003_ValidationperModel_Testing_E1_IoU_0.2, 003_ValidationperModel_Testing_E1_IoU_0.3).
 
-For the sake of completeness, we have also included in SpinCo/demo  pickle files (".pkl") with the feature selection results and XGBoost models configuration, as well as an experiments subfolder with the trained XGBoost models, so the final users can check and replicate the results.
+For the sake of completeness, we have also included in SpinCo/demo  pickle files (".pkl") with the feature selection results and XGBoost models configuration, as well as an experiments subfolder with the trained XGBoost models, so the final users can check and replicate the results by just running 003_ValidationperModel_Testing_E1_IoU_0.2 and 003_ValidationperModel_Testing_E1_IoU_0.3 Jupyter Notebooks.
 
 ### Cite:
 If you use this code kindly cite:
