@@ -77,3 +77,6 @@ COGNITION-related subfolders contain jupyter notebooks (".ipynb") for data split
 
 MASS-related subfolders contain Jupyter notebooks (".ipynb") for data split (000_DataSplit), XGBoost models training (001_Training), validation and testing (002_ValidationperModel_Testing_E1_IoU_0.2, 002_ValidationperModel_Testing_E1_IoU_0.3, 002_ValidationperModel_Testing_E2_IoU_0.2, and 002_ValidationperModel_Testing_E2_IoU_0.3). There are also pickle files (".pkl") with the feature selection results and XGBoost models configuration. MASS_Nsel_250 subfolder also contains Jupyter notebooks for per-subject spindles characteristics analysis (003_Correlations_E1_IoU_0.2, 003_Correlations_E1_IoU_0.3, 003_Correlations_E2_IoU_0.2, and 003_Correlations_E2_IoU_0.3), an inter-expert variability and inter-expert generalization test (004_Interpredictability), and inter-expert per-subject spindles characteristics analysis (005_InterExpertCorrelations_E1_IoU_0.2, 005_InterExpertCorrelations_E1_IoU_0.3, 005_InterExpertCorrelations_E2_IoU_0.2, and 005_InterExpertCorrelations_E2_IoU_0.3).
 
+### Contact:
+Feel free to reach out to us with any questions regarding the code repository or databases. You can contact Enrique Gurdiel at enrique.gurdiel@gib.tel.uva.es and/or Fernando Vaquerizo-Villar at fernando.vaquerizo@uva.es.
+
