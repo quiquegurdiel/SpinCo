@@ -1,5 +1,5 @@
 # SpinCo
-## Spindle detection application for Cognition database
+Spindle detection application for Cognition database
 
 ### Required steps for setup:
 1- clone repository to [your folder]
